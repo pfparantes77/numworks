@@ -6,6 +6,8 @@
 
   const STORAGE_KEY = "pa_numworks_session_v1";
   const MIN_AWAY_MS = 700; // ignora perdas de foco extremamente breves
+  const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+    || window.matchMedia("(pointer: coarse)").matches;
   const $ = (id) => document.getElementById(id);
 
   const els = {
@@ -54,6 +56,8 @@
   let suppressTracking = true;
   let teacherOverlayOpen = false;
   let fullscreenExitPending = false;
+  let fullscreenWasEntered = false;
+  let fullscreenEnteredAt = 0;
 
   function now() { return Date.now(); }
 
@@ -180,12 +184,29 @@
     els.sessionState.className = `badge ${session.active ? "ok" : "warn"}`;
   }
 
-  function requestFullscreen() {
+  async function requestFullscreen() {
     const target = document.documentElement;
     if (!document.fullscreenElement && target.requestFullscreen) {
-      return target.requestFullscreen().catch(() => {});
+      try {
+        await target.requestFullscreen();
+        if (document.fullscreenElement) {
+          fullscreenWasEntered = true;
+          fullscreenEnteredAt = now();
+        }
+      } catch {
+        // Alguns navegadores móveis não permitem fullscreen de forma consistente.
+      }
     }
-    return Promise.resolve();
+  }
+
+  function updateFullscreenUI() {
+    // Em dispositivos móveis, o estado fullscreen do browser é pouco fiável
+    // devido às barras do navegador, teclado, orientação e interação com iframes.
+    if (IS_MOBILE) {
+      els.fullscreenWarning.classList.add("hidden");
+      return;
+    }
+    els.fullscreenWarning.classList.toggle("hidden", !!document.fullscreenElement);
   }
 
   function isTrackingAllowed() {
@@ -209,7 +230,6 @@
     const durationMs = Math.max(0, endedAt - current.startedAt);
     session.currentAway = null;
 
-    // Ignora apenas eventos mínimos, exceto saídas explícitas do ecrã inteiro.
     if (durationMs < MIN_AWAY_MS && current.reason !== "saida_ecra_inteiro") {
       saveSession();
       return null;
@@ -335,11 +355,9 @@
     renderStudent();
     startTimer();
 
-    // A chamada a fullscreen resulta de uma ação direta do utilizador (submit/click).
     await requestFullscreen();
-    els.fullscreenWarning.classList.toggle("hidden", !!document.fullscreenElement);
+    updateFullscreenUI();
 
-    // Pequena janela de tolerância para não registar efeitos da própria transição.
     setTimeout(() => { suppressTracking = false; }, 800);
   }
 
@@ -348,7 +366,6 @@
     session.reloads = (session.reloads || 0) + 1;
     session.events.push({ type: "reload", at: now() });
 
-    // Se a página anterior marcou uma ausência antes do unload, conclui-a agora.
     if (session.currentAway) {
       const endedAt = now();
       const durationMs = Math.max(0, endedAt - session.currentAway.startedAt);
@@ -367,7 +384,7 @@
     setView(true);
     renderStudent();
     startTimer();
-    els.fullscreenWarning.classList.toggle("hidden", !!document.fullscreenElement);
+    updateFullscreenUI();
     setTimeout(() => { suppressTracking = false; }, 800);
   }
 
@@ -400,13 +417,23 @@
   });
 
   window.addEventListener("blur", () => {
+    // No Android/iOS, tocar no iframe da NumWorks pode provocar "blur"
+    // na página principal sem o aluno ter saído do ambiente.
+    if (IS_MOBILE) return;
+
     clearTimeout(blurTimer);
     blurTimer = setTimeout(() => {
-      if (!document.hidden) beginAway("perda_foco");
-    }, 180);
+      if (!isTrackingAllowed() || document.hidden) return;
+      if (document.activeElement === $("numworksFrame")) return;
+      if (!document.hasFocus()) {
+        beginAway("perda_foco");
+      }
+    }, 400);
   });
 
   window.addEventListener("focus", () => {
+    if (IS_MOBILE) return;
+
     clearTimeout(blurTimer);
     if (!document.hidden && !teacherOverlayOpen && !fullscreenExitPending) {
       finishAway("foco");
@@ -417,18 +444,27 @@
     if (!session?.active || suppressTracking || teacherOverlayOpen) return;
 
     const isFull = !!document.fullscreenElement;
-    els.fullscreenWarning.classList.toggle("hidden", isFull);
+    updateFullscreenUI();
 
-    if (!isFull) {
+    if (isFull) {
+      fullscreenWasEntered = true;
+      fullscreenEnteredAt = now();
+
+      if (!IS_MOBILE) {
+        fullscreenExitPending = false;
+        finishAway("ecra_inteiro");
+      }
+      return;
+    }
+
+    if (IS_MOBILE) return;
+
+    if (fullscreenWasEntered && (now() - fullscreenEnteredAt) > 1500) {
       fullscreenExitPending = true;
       beginAway("saida_ecra_inteiro");
-    } else {
-      fullscreenExitPending = false;
-      finishAway("ecra_inteiro");
     }
   });
 
-  // pagehide é mais fiável do que beforeunload para persistir a hora de saída.
   window.addEventListener("pagehide", () => {
     if (!session?.active) return;
     if (!session.currentAway) {
@@ -480,7 +516,6 @@
   els.endSessionButton.addEventListener("click", () => {
     if (!session?.active) return;
 
-    // Se havia uma ausência em curso, fecha-a no momento em que o professor termina.
     if (session.currentAway) finishAway("fim_sessao");
 
     session.active = false;
@@ -511,11 +546,11 @@
   });
 
   // Inicialização
+  // Mobile: deteta saídas sobretudo por visibilitychange/pagehide.
+  // Desktop: acrescenta blur/focus e saída real de fullscreen.
   if (session?.active) {
     els.recoverButton.classList.remove("hidden");
   } else if (session && !session.active) {
-    // Uma sessão terminada fica consultável pelo botão de retoma, que abre o ambiente
-    // apenas para permitir ao professor aceder ao relatório.
     els.recoverButton.textContent = "Consultar sessão terminada";
     els.recoverButton.classList.remove("hidden");
     els.recoverButton.onclick = () => {
