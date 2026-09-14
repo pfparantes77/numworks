@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#111827">
+  <title>NumWorks — Ambiente de Matemática</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="app">
+    <section id="welcomeView" class="view">
+      <div class="card welcome-card">
+        <div class="brand">
+          <div class="brand-mark">∑</div>
+          <div>
+            <p class="eyebrow">MATEMÁTICA</p>
+            <h1>Ambiente NumWorks</h1>
+            <p class="muted">Sessão local de utilização da calculadora gráfica</p>
+          </div>
+        </div>
+
+        <form id="startForm" autocomplete="off">
+          <div class="grid">
+            <label>
+              Nome
+              <input id="studentName" maxlength="70" required placeholder="Nome do aluno">
+            </label>
+            <label>
+              N.º
+              <input id="studentNumber" maxlength="10" required placeholder="Ex.: 14">
+            </label>
+            <label>
+              Turma
+              <input id="studentClass" maxlength="20" required placeholder="Ex.: 8.º A">
+            </label>
+          </div>
+
+          <div class="notice">
+            <strong>Informação:</strong>
+            durante a sessão, esta página regista localmente quando deixa de estar ativa,
+            quando sai do ecrã inteiro e quando é recarregada. Não identifica os sites ou
+            aplicações utilizados fora deste ambiente e não envia dados para qualquer servidor.
+          </div>
+
+          <label class="check">
+            <input id="acknowledge" type="checkbox" required>
+            <span>Tomei conhecimento.</span>
+          </label>
+
+          <button class="primary" type="submit">Iniciar sessão</button>
+        </form>
+
+        <button id="recoverButton" class="secondary hidden" type="button">
+          Retomar sessão anterior
+        </button>
+      </div>
+    </section>
+
+    <section id="sessionView" class="view hidden">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">AMBIENTE NUMWORKS</p>
+          <div class="student-line">
+            <strong id="studentSummary"></strong>
+            <span id="sessionState" class="badge ok">Sessão ativa</span>
+          </div>
+        </div>
+
+        <div class="top-actions">
+          <div class="timer-wrap">
+            <span class="timer-label">Tempo</span>
+            <strong id="sessionTimer">00:00:00</strong>
+          </div>
+          <button id="fullscreenButton" class="secondary small" type="button">
+            Ecrã inteiro
+          </button>
+          <button id="reportButton" class="secondary small" type="button">
+            Relatório da sessão
+          </button>
+        </div>
+      </header>
+
+      <div id="fullscreenWarning" class="fullscreen-warning hidden">
+        <span>⚠ O modo de ecrã inteiro está desativado.</span>
+        <button id="restoreFullscreenButton" type="button">Retomar ecrã inteiro</button>
+      </div>
+
+      <div class="calculator-area">
+        <div class="calculator-frame">
+          <iframe
+            id="numworksFrame"
+            title="Simulador NumWorks"
+            src="https://www.numworks.com/simulator/embed/"
+            width="368"
+            height="720"
+            allow="fullscreen"
+          ></iframe>
+        </div>
+      </div>
+
+      <footer class="session-footer">
+        <span>Pedro Arantes · Matemática</span>
+        <span>Os registos permanecem apenas neste navegador.</span>
+      </footer>
+    </section>
+  </main>
+
+  <div id="absenceOverlay" class="overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal warning-modal">
+      <div class="warning-icon">!</div>
+      <h2>Saída do ambiente detetada</h2>
+      <p>Esta ocorrência ficou registada localmente.</p>
+      <dl class="summary-list">
+        <div><dt>Saída n.º</dt><dd id="absenceNumber">—</dd></div>
+        <div><dt>Duração</dt><dd id="absenceDuration">—</dd></div>
+      </dl>
+      <button id="continueButton" class="primary" type="button">Continuar</button>
+    </div>
+  </div>
+
+  <div id="pinOverlay" class="overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal">
+      <h2>Área do professor</h2>
+      <p class="muted">Introduza o PIN para consultar o relatório.</p>
+      <form id="pinForm">
+        <input id="pinInput" class="pin" type="password" inputmode="numeric"
+               maxlength="12" autocomplete="off" placeholder="PIN" required>
+        <p id="pinError" class="error hidden">PIN incorreto.</p>
+        <div class="modal-actions">
+          <button id="cancelPinButton" class="secondary" type="button">Cancelar</button>
+          <button class="primary" type="submit">Abrir relatório</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="reportOverlay" class="overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal report-modal">
+      <div class="report-head">
+        <div>
+          <p class="eyebrow">RELATÓRIO LOCAL</p>
+          <h2>Relatório da sessão</h2>
+        </div>
+        <button id="closeReportButton" class="icon-button" type="button" aria-label="Fechar">×</button>
+      </div>
+
+      <div id="reportStatus" class="report-status"></div>
+
+      <div class="report-grid">
+        <div><span>Aluno</span><strong id="reportName"></strong></div>
+        <div><span>N.º</span><strong id="reportNumber"></strong></div>
+        <div><span>Turma</span><strong id="reportClass"></strong></div>
+        <div><span>Início</span><strong id="reportStart"></strong></div>
+        <div><span>Duração</span><strong id="reportDuration"></strong></div>
+        <div><span>Saídas</span><strong id="reportAbsences"></strong></div>
+        <div><span>Tempo total fora</span><strong id="reportAwayTime"></strong></div>
+        <div><span>Recarregamentos</span><strong id="reportReloads"></strong></div>
+      </div>
+
+      <h3>Ocorrências</h3>
+      <div id="eventsTableWrap"></div>
+
+      <div class="teacher-actions">
+        <button id="endSessionButton" class="danger" type="button">Terminar sessão</button>
+        <button id="clearSessionButton" class="danger-outline hidden" type="button">
+          Limpar e preparar nova sessão
+        </button>
+      </div>
+
+      <p class="footnote">
+        A aplicação regista a perda de atividade desta página; não determina que site,
+        aplicação ou conteúdo foi utilizado durante a ausência.
+      </p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
