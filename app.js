@@ -2,7 +2,7 @@
   "use strict";
 
   // ALTERE ESTE PIN antes de publicar, se desejar.
-  const TEACHER_PIN = "2718";
+  const TEACHER_PIN = "3094";
 
   const STORAGE_KEY = "pa_numworks_session_v1";
   const MIN_AWAY_MS = 700; // ignora perdas de foco extremamente breves
