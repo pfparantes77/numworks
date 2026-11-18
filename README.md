@@ -20,15 +20,7 @@ Aplicação Web estática para utilização da calculadora gráfica NumWorks em 
 
 ## PIN do professor
 
-O PIN inicial é:
-
-`2718`
-
-Antes de publicar, pode alterá-lo na primeira linha de configuração de `app.js`:
-
-```js
-const TEACHER_PIN = "2718";
-```
+O PIN em utilização está definido na constante `TEACHER_PIN`, no ficheiro `app.js`. Consulte essa constante para confirmar o valor antes de abrir o relatório.
 
 > Nota: numa aplicação Web estática, o PIN não é criptograficamente secreto — um utilizador tecnicamente avançado pode consultar o código-fonte. Serve como barreira funcional contra alterações acidentais ou utilização comum, não como mecanismo de segurança forte.
 
@@ -36,9 +28,9 @@ const TEACHER_PIN = "2718";
 
 Para obter:
 
-`https://pedroarantes.github.io/numworks/`
+`https://pfparantes77.github.io/numworks/`
 
-1. Entre no GitHub com a conta `pedroarantes`.
+1. Entre no GitHub com a conta `pfparantes77`.
 2. Crie um repositório **público** chamado `numworks`.
 3. Envie para a raiz do repositório:
    - `index.html`
@@ -54,7 +46,7 @@ Para obter:
 1. O aluno abre o endereço da aplicação.
 2. Introduz Nome, N.º e Turma e seleciona “Tomei conhecimento”.
 3. Clica em **Iniciar sessão**.
-4. Trabalha com a NumWorks incorporada.
+4. Trabalha com a NumWorks incorporada. Se o simulador não carregar, pode abri-lo em separado pelo link abaixo da calculadora. A página só regista a atividade do separador da sessão.
 5. No final, o professor vai ao computador do aluno e clica em **Relatório da sessão**.
 6. Introduz o PIN.
 7. Verifica:
